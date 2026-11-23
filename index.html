@@ -1,0 +1,1679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Calorie Coach — Gujarati Vegan</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .safe-bottom {
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+  </style>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#059669" />
+</head>
+<body class="bg-slate-100 text-slate-900 min-h-screen">
+  <!-- In-app Reminder Banner -->
+  <div id="reminder-banner" class="hidden sticky top-0 z-50 bg-emerald-700 text-white px-4 py-3 shadow-lg">
+    <div class="max-w-xl mx-auto flex items-center justify-between gap-3">
+      <div class="min-w-0">
+        <p id="reminder-banner-title" class="font-semibold text-sm truncate"></p>
+        <p id="reminder-banner-sub" class="text-xs text-emerald-100 truncate"></p>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        <button id="reminder-banner-action" type="button" class="px-3 py-1.5 rounded-lg bg-white text-emerald-800 text-xs font-semibold">Eat</button>
+        <button id="reminder-banner-dismiss" type="button" class="px-2.5 py-1.5 rounded-lg bg-emerald-800 text-white text-xs">Dismiss</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="hidden fixed bottom-24 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white text-xs font-medium px-4 py-2.5 rounded-full shadow-lg whitespace-nowrap"></div>
+
+  <!-- Mobile App Top Bar -->
+  <header class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-200">
+    <div class="max-w-xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+      <div class="min-w-0">
+        <div class="flex items-center gap-2">
+          <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-emerald-600 text-white text-xs font-bold">CC</span>
+          <h1 class="text-base font-bold text-slate-900 truncate">Calorie Coach</h1>
+          <span id="header-bmi-pill" class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200">BMI 27.7</span>
+        </div>
+        <p id="today-date-label" class="text-[11px] text-slate-500 mt-0.5 truncate"></p>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        <div class="bg-emerald-50 border border-emerald-200 rounded-xl px-2.5 py-1 text-right">
+          <p class="text-[10px] uppercase tracking-wide font-semibold text-emerald-700">Next</p>
+          <p id="next-reminder-text" class="text-[11px] font-semibold text-emerald-950">Loading...</p>
+        </div>
+        <button id="btn-test-alert" type="button" title="Test Reminder" class="px-2.5 py-2 rounded-xl bg-slate-100 active:bg-slate-200 text-slate-700 text-xs font-semibold">
+          Bell
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Scrollable App Content -->
+  <main class="max-w-xl mx-auto px-4 pt-4 pb-28 space-y-4">
+    <!-- TAB 1: TODAY & TRACKER -->
+    <section id="tab-tracker" class="tab-panel space-y-4">
+      <!-- Calorie Summary Card -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-xs font-medium text-slate-500">Remaining Today</p>
+            <p id="kpi-remaining" class="text-3xl font-bold text-emerald-600 mt-0.5">1,800 kcal</p>
+          </div>
+          <div class="text-right">
+            <span id="calorie-progress-pct" class="inline-block text-xs font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full">0% of goal</span>
+            <p id="kpi-net-sub" class="text-xs text-slate-500 mt-1">Net: 0 kcal</p>
+          </div>
+        </div>
+        <div class="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
+          <div id="calorie-progress-bar" class="h-full bg-emerald-600 rounded-full transition-all duration-300" style="width: 0%"></div>
+        </div>
+        <div class="grid grid-cols-3 gap-2 pt-1 text-center">
+          <div class="bg-slate-50 rounded-xl p-2">
+            <p class="text-[11px] text-slate-500">Target</p>
+            <p id="kpi-target-sub" class="text-xs font-bold text-slate-800">1,800 kcal</p>
+          </div>
+          <div class="bg-slate-50 rounded-xl p-2">
+            <p class="text-[11px] text-slate-500">Consumed</p>
+            <p id="kpi-consumed" class="text-xs font-bold text-slate-800">0 kcal</p>
+          </div>
+          <div class="bg-orange-50 rounded-xl p-2">
+            <p class="text-[11px] text-orange-700">Burned</p>
+            <p id="kpi-burned" class="text-xs font-bold text-orange-700">0 kcal</p>
+          </div>
+        </div>
+        <p id="calorie-guidance-text" class="text-xs text-slate-600">Log your meals and workouts below or pick a dish from Eat.</p>
+        <p id="min-calorie-badge" class="text-[11px] font-medium text-slate-500 bg-slate-50 px-3 py-1.5 rounded-xl">Safe minimum intake: 1,500 kcal/day (Male) &bull; 1,200 kcal/day (Female)</p>
+      </div>
+
+      <!-- Macro Bifurcation Card: Protein, Fiber, Fat -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-bold text-slate-900">Nutrition Bifurcation</h2>
+          <span class="text-[11px] text-slate-500">Today's Macros</span>
+        </div>
+        <div class="grid grid-cols-3 gap-3">
+          <div class="space-y-1">
+            <div class="flex justify-between text-xs">
+              <span class="font-medium text-slate-600">Protein</span>
+              <span id="macro-protein-val" class="font-bold text-indigo-600">0g</span>
+            </div>
+            <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+              <div id="macro-protein-bar" class="h-full bg-indigo-500 rounded-full" style="width: 0%"></div>
+            </div>
+            <p id="macro-protein-goal" class="text-[10px] text-slate-400">Goal: 120g</p>
+          </div>
+          <div class="space-y-1">
+            <div class="flex justify-between text-xs">
+              <span class="font-medium text-slate-600">Fiber</span>
+              <span id="macro-fiber-val" class="font-bold text-emerald-600">0g</span>
+            </div>
+            <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+              <div id="macro-fiber-bar" class="h-full bg-emerald-500 rounded-full" style="width: 0%"></div>
+            </div>
+            <p id="macro-fiber-goal" class="text-[10px] text-slate-400">Goal: 30g</p>
+          </div>
+          <div class="space-y-1">
+            <div class="flex justify-between text-xs">
+              <span class="font-medium text-slate-600">Fat</span>
+              <span id="macro-fat-val" class="font-bold text-amber-600">0g</span>
+            </div>
+            <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+              <div id="macro-fat-bar" class="h-full bg-amber-500 rounded-full" style="width: 0%"></div>
+            </div>
+            <p id="macro-fat-goal" class="text-[10px] text-slate-400">Limit: 50g</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Water & Weight Quick Card -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+        <div class="flex items-center justify-between">
+          <span class="text-sm font-bold text-slate-900">Water &amp; Weight</span>
+          <span id="kpi-water-sub" class="text-xs font-semibold text-sky-700 bg-sky-50 px-2.5 py-0.5 rounded-full">0.0 / 3.0 L</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="btn-water-minus" type="button" class="flex-1 py-2 rounded-xl bg-slate-100 active:bg-slate-200 text-xs font-semibold text-slate-700">-250 ml</button>
+          <button id="btn-water-plus" type="button" class="flex-1 py-2 rounded-xl bg-sky-600 active:bg-sky-700 text-xs font-semibold text-white">+250 ml</button>
+        </div>
+        <div class="flex items-center gap-2 pt-1">
+          <label for="today-weight-input" class="text-xs text-slate-600 whitespace-nowrap">Weight (kg):</label>
+          <input id="today-weight-input" type="number" step="0.1" min="25" max="300" placeholder="80.0" class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+          <button id="btn-save-weight" type="button" class="px-3.5 py-1.5 rounded-xl bg-slate-800 text-white text-xs font-semibold">Save</button>
+        </div>
+      </div>
+
+      <!-- Smart Food & Macro Logger -->
+      <form id="form-add-meal" class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-bold text-slate-900">Smart Calorie &amp; Food Logger</h2>
+          <span class="text-[11px] text-emerald-700 font-medium">Auto-calculates macros</span>
+        </div>
+
+        <!-- Smart Food Analyzer & Search -->
+        <div class="relative space-y-1.5">
+          <label for="smart-food-search" class="block text-xs font-medium text-slate-600">Type Any Food to Analyze or Search</label>
+          <div class="flex gap-2">
+            <input id="smart-food-search" type="text" autocomplete="off" placeholder="e.g. 2 rotli + 1 bowl undhiyu or 2 khakhra" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+            <button id="btn-analyze-food" type="button" class="px-3 py-2 rounded-xl bg-slate-800 text-white text-xs font-semibold shrink-0">Analyze</button>
+          </div>
+          <div id="smart-search-results" class="hidden mt-1 max-h-48 overflow-y-auto border border-slate-200 rounded-xl bg-white divide-y divide-slate-100 shadow-md"></div>
+          <div id="food-analysis-box" class="hidden p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-950 space-y-1"></div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2.5">
+          <div class="col-span-2">
+            <label for="meal-name" class="block text-xs font-medium text-slate-600 mb-1">Food Name</label>
+            <input id="meal-name" type="text" required placeholder="e.g. 2 Phulka Rotli + Gujarati Dal" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+          </div>
+          <div>
+            <label for="meal-slot" class="block text-xs font-medium text-slate-600 mb-1">Meal Time</label>
+            <select id="meal-slot" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+              <option value="Breakfast">Breakfast</option>
+              <option value="Lunch">Lunch</option>
+              <option value="Snack">Snack</option>
+              <option value="Dinner">Dinner</option>
+            </select>
+          </div>
+          <div>
+            <label for="meal-portion" class="block text-xs font-medium text-slate-600 mb-1">Portion Size</label>
+            <select id="meal-portion" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+              <option value="0.5">0.5&times; (Half)</option>
+              <option value="1" selected>1&times; (Standard)</option>
+              <option value="1.5">1.5&times;</option>
+              <option value="2">2&times; (Double)</option>
+            </select>
+          </div>
+          <div>
+            <label for="meal-calories" class="block text-xs font-medium text-slate-600 mb-1">Calories (kcal)</label>
+            <input id="meal-calories" type="number" required min="1" max="4000" placeholder="250" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+          </div>
+          <div>
+            <label for="meal-protein" class="block text-xs font-medium text-slate-600 mb-1">Protein (g)</label>
+            <input id="meal-protein" type="number" step="0.1" min="0" max="300" placeholder="10" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+          </div>
+          <div>
+            <label for="meal-fiber" class="block text-xs font-medium text-slate-600 mb-1">Fiber (g)</label>
+            <input id="meal-fiber" type="number" step="0.1" min="0" max="150" placeholder="5" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+          </div>
+          <div>
+            <label for="meal-fat" class="block text-xs font-medium text-slate-600 mb-1">Fat (g)</label>
+            <input id="meal-fat" type="number" step="0.1" min="0" max="200" placeholder="4" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+          </div>
+        </div>
+
+        <label class="inline-flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
+          <input id="save-to-library" type="checkbox" class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
+          Also save this food to my custom food library
+        </label>
+
+        <button type="submit" class="w-full py-2.5 rounded-xl bg-emerald-600 active:bg-emerald-700 text-white text-sm font-semibold">Add Food to Today</button>
+      </form>
+
+      <!-- Quick Log Exercise -->
+      <form id="form-add-exercise" class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+        <h2 class="text-sm font-bold text-slate-900">Log Exercise</h2>
+        <div class="grid grid-cols-2 gap-2.5">
+          <div class="col-span-2">
+            <label for="exercise-type" class="block text-xs font-medium text-slate-600 mb-1">Activity</label>
+            <select id="exercise-type" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+              <option value="3.8">Moderate Walking (3.8 MET — Joint-Safe)</option>
+              <option value="4.3">Brisk Walking (4.3 MET — Joint-Safe)</option>
+              <option value="2.5">Yoga / Stretching (2.5 MET — Joint-Safe)</option>
+              <option value="6.0">Controlled Strength Training (6.0 MET)</option>
+              <option value="6.8">Stationary Cycling (6.8 MET — Joint-Safe)</option>
+              <option value="5.8">Swimming / Water Aerobics (5.8 MET — Joint-Safe)</option>
+              <option value="8.0">HIIT / Zumba (8.0 MET — High Impact)</option>
+              <option value="8.5">Running 8 km/h (8.5 MET — High Impact)</option>
+            </select>
+          </div>
+          <div>
+            <label for="exercise-minutes" class="block text-xs font-medium text-slate-600 mb-1">Minutes</label>
+            <input id="exercise-minutes" type="number" required min="5" max="300" value="30" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Est. Burn</label>
+            <p id="exercise-est-preview" class="px-3 py-2 text-sm font-semibold text-orange-700 bg-orange-50 border border-orange-200 rounded-xl">152 kcal</p>
+          </div>
+        </div>
+        <button type="submit" class="w-full py-2.5 rounded-xl bg-orange-600 active:bg-orange-700 text-white text-sm font-semibold">Add Exercise</button>
+      </form>
+
+      <!-- Today's Log -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-2">
+        <div class="flex items-center justify-between gap-2">
+          <h2 class="text-sm font-bold text-slate-900">Today's Log</h2>
+          <div class="flex items-center gap-3">
+            <button id="btn-export-csv-today" type="button" class="text-xs font-semibold text-emerald-700">Download CSV</button>
+            <button id="btn-clear-today" type="button" class="text-xs font-medium text-rose-600">Clear Today</button>
+          </div>
+        </div>
+        <div id="today-log-list" class="divide-y divide-slate-100"></div>
+      </div>
+    </section>
+
+    <!-- TAB 2: SCHEDULE & REMINDERS -->
+    <section id="tab-schedule" class="tab-panel hidden space-y-4">
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+        <div>
+          <h2 class="text-sm font-bold text-slate-900">Daily Meal &amp; Workout Reminders</h2>
+          <p class="text-xs text-slate-500 mt-0.5">Set when you eat and work out. Alerts fire with an in-app banner and chime.</p>
+        </div>
+        <div class="flex items-center justify-between gap-3 pt-1">
+          <label class="inline-flex items-center gap-2 text-xs font-medium text-slate-700 cursor-pointer">
+            <input id="toggle-sound" type="checkbox" checked class="rounded border-slate-300 text-emerald-600" />
+            Sound Chime
+          </label>
+          <button id="btn-enable-notif" type="button" class="px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 text-xs font-semibold border border-emerald-200">
+            Enable Browser Alerts
+          </button>
+        </div>
+      </div>
+      <div id="schedule-list" class="space-y-3"></div>
+    </section>
+
+    <!-- TAB 3: WHAT TO EAT (GUJARATI VEGAN + CUSTOM FOODS) -->
+    <section id="tab-meals" class="tab-panel hidden space-y-4">
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+        <div class="flex items-center justify-between gap-2">
+          <div>
+            <h2 class="text-sm font-bold text-slate-900">Gujarati Vegan Food Library</h2>
+            <p class="text-xs text-slate-500">100% dairy-free &amp; ghee-free. Add your own dishes anytime.</p>
+          </div>
+          <button id="btn-toggle-custom-food" type="button" class="px-3 py-2 rounded-xl bg-emerald-600 text-white text-xs font-semibold shrink-0">
+            + Add Food
+          </button>
+        </div>
+
+        <!-- Add Custom Food Drawer -->
+        <form id="form-custom-food" class="hidden p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2.5">
+          <p class="text-xs font-bold text-slate-800">Add Any Custom Food</p>
+          <div class="grid grid-cols-2 gap-2">
+            <div class="col-span-2 flex gap-1.5">
+              <input id="custom-food-name" type="text" required placeholder="Dish name (e.g. 1 Bowl Undhiyu)" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg bg-white" />
+              <button id="btn-analyze-custom" type="button" class="px-2.5 py-2 rounded-lg bg-slate-800 text-white text-[11px] font-semibold shrink-0">Analyze</button>
+            </div>
+            <select id="custom-food-slot" class="px-3 py-2 text-xs border border-slate-300 rounded-lg bg-white">
+              <option value="Breakfast">Breakfast</option>
+              <option value="Lunch">Lunch</option>
+              <option value="Snack">Snack</option>
+              <option value="Dinner">Dinner</option>
+            </select>
+            <input id="custom-food-kcal" type="number" required min="1" placeholder="Calories (kcal)" class="px-3 py-2 text-xs border border-slate-300 rounded-lg bg-white" />
+            <input id="custom-food-protein" type="number" step="0.1" min="0" placeholder="Protein (g)" class="px-3 py-2 text-xs border border-slate-300 rounded-lg bg-white" />
+            <input id="custom-food-fiber" type="number" step="0.1" min="0" placeholder="Fiber (g)" class="px-3 py-2 text-xs border border-slate-300 rounded-lg bg-white" />
+            <input id="custom-food-fat" type="number" step="0.1" min="0" placeholder="Fat (g)" class="col-span-2 px-3 py-2 text-xs border border-slate-300 rounded-lg bg-white" />
+          </div>
+          <div class="flex gap-2">
+            <button type="submit" class="flex-1 py-2 rounded-lg bg-emerald-600 text-white text-xs font-semibold">Save Food</button>
+            <button id="btn-cancel-custom-food" type="button" class="px-3 py-2 rounded-lg bg-slate-200 text-slate-700 text-xs font-semibold">Cancel</button>
+          </div>
+        </form>
+
+        <div id="meal-filter-group" class="flex flex-wrap gap-1.5">
+          <button type="button" data-filter="All" class="meal-filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 text-white">All</button>
+          <button type="button" data-filter="Breakfast" class="meal-filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700">Breakfast</button>
+          <button type="button" data-filter="Lunch" class="meal-filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700">Lunch/Dinner</button>
+          <button type="button" data-filter="Snack" class="meal-filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700">Snack</button>
+          <button type="button" data-filter="High-Protein" class="meal-filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700">High-Protein</button>
+          <button type="button" data-filter="Custom" class="meal-filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700">My Foods</button>
+        </div>
+      </div>
+
+      <div id="meal-ideas-grid" class="space-y-3"></div>
+    </section>
+
+    <!-- TAB 4: EXERCISE NEEDED & BMI SAFETY GUIDANCE -->
+    <section id="tab-exercise" class="tab-panel hidden space-y-4">
+      <!-- BMI-Based Safety Guidance Card -->
+      <div id="exercise-safety-card" class="bg-amber-50 border border-amber-200 p-4 rounded-2xl space-y-2">
+        <div class="flex items-center justify-between gap-2">
+          <h2 id="exercise-safety-title" class="text-sm font-bold text-amber-900">Joint-Safe Exercise Guidance</h2>
+          <span id="exercise-bmi-badge" class="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-200 text-amber-950">BMI 27.7</span>
+        </div>
+        <p id="exercise-safety-body" class="text-xs text-amber-900 leading-relaxed"></p>
+        <div id="exercise-safety-rules" class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 text-xs"></div>
+      </div>
+
+      <!-- Weekly Activity Progress -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-2">
+        <div class="flex items-center justify-between gap-2">
+          <h2 class="text-sm font-bold text-slate-900">Exercise Needed Today</h2>
+          <span id="exercise-goal-pill" class="text-xs font-semibold bg-orange-50 text-orange-800 border border-orange-200 px-2.5 py-1 rounded-full">Goal: 250 kcal</span>
+        </div>
+        <p id="exercise-needed-summary" class="text-xs text-slate-600">Calculated using MET &times; Weight (kg) &times; Hours.</p>
+        <p id="weekly-exercise-mins" class="text-[11px] font-semibold text-emerald-700">Weekly target: 150–300 min moderate activity (0 min logged this week)</p>
+      </div>
+
+      <div id="exercise-plan-grid" class="space-y-3"></div>
+    </section>
+
+    <!-- TAB 5: GOALS, BMI TRACKER & PROGRESS -->
+    <section id="tab-progress" class="tab-panel hidden space-y-4">
+      <!-- BMI Tracker & Safe Minimum Calories Card -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-sm font-bold text-slate-900">BMI Tracker &amp; Safe Minimum Calories</h2>
+            <p class="text-[11px] text-slate-500">Calculated from your height, weight, age &amp; activity</p>
+          </div>
+          <div class="text-right">
+            <p id="bmi-big-value" class="text-2xl font-bold text-amber-600">27.7</p>
+            <span id="bmi-category-badge" class="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">Overweight</span>
+          </div>
+        </div>
+
+        <!-- BMI Scale Bar -->
+        <div class="space-y-1">
+          <div class="grid grid-cols-4 h-2.5 rounded-full overflow-hidden">
+            <div class="bg-sky-400" title="Underweight <18.5"></div>
+            <div class="bg-emerald-500" title="Healthy 18.5–24.9"></div>
+            <div class="bg-amber-400" title="Overweight 25–29.9"></div>
+            <div class="bg-rose-500" title="Obese 30+"></div>
+          </div>
+          <div class="flex justify-between text-[10px] text-slate-400">
+            <span>&lt;18.5 Under</span>
+            <span>18.5–24.9 Healthy</span>
+            <span>25–29.9 Over</span>
+            <span>30+ Obese</span>
+          </div>
+        </div>
+
+        <!-- Safe Minimum & Recommended Calorie Box -->
+        <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-1.5 text-xs">
+          <div class="flex justify-between">
+            <span class="text-slate-600">Est. Maintenance Calories:</span>
+            <strong id="bmi-maintenance-kcal" class="text-slate-900">2,250 kcal/day</strong>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-600">Recommended Weight-Loss Target:</span>
+            <strong id="bmi-recommended-kcal" class="text-emerald-700">1,750 kcal/day</strong>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-600">Safe Minimum Floor (do not go below):</span>
+            <strong id="bmi-min-floor-kcal" class="text-rose-600">1,500 kcal/day</strong>
+          </div>
+          <p class="text-[11px] text-slate-500 pt-1">Medical guidelines advise never dropping below 1,200 kcal/day (women) or 1,500 kcal/day (men) without doctor supervision.</p>
+          <button id="btn-apply-bmi-target" type="button" class="w-full mt-1 py-2 rounded-lg bg-emerald-600 text-white text-xs font-semibold">
+            Apply Recommended Target
+          </button>
+        </div>
+      </div>
+
+      <!-- Profile & Targets Form -->
+      <form id="form-goals" class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+        <h2 class="text-sm font-bold text-slate-900">Body Profile &amp; Daily Targets</h2>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label for="goal-sex" class="block text-xs font-medium text-slate-600 mb-1">Sex (for BMR/Min kcal)</label>
+            <select id="goal-sex" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl bg-white">
+              <option value="male">Male (Min 1,500 kcal)</option>
+              <option value="female">Female (Min 1,200 kcal)</option>
+            </select>
+          </div>
+          <div>
+            <label for="goal-height" class="block text-xs font-medium text-slate-600 mb-1">Height (cm)</label>
+            <input id="goal-height" type="number" min="100" max="250" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl" />
+          </div>
+          <div>
+            <label for="goal-age" class="block text-xs font-medium text-slate-600 mb-1">Age (years)</label>
+            <input id="goal-age" type="number" min="15" max="100" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl" />
+          </div>
+          <div>
+            <label for="goal-activity" class="block text-xs font-medium text-slate-600 mb-1">Daily Activity</label>
+            <select id="goal-activity" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl bg-white">
+              <option value="1.2">Sedentary (Desk job)</option>
+              <option value="1.375">Lightly Active</option>
+              <option value="1.55">Moderately Active</option>
+              <option value="1.725">Very Active</option>
+            </select>
+          </div>
+          <div>
+            <label for="goal-current-weight" class="block text-xs font-medium text-slate-600 mb-1">Current Weight (kg)</label>
+            <input id="goal-current-weight" type="number" step="0.1" min="25" max="300" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl" />
+          </div>
+          <div>
+            <label for="goal-target-weight" class="block text-xs font-medium text-slate-600 mb-1">Goal Weight (kg)</label>
+            <input id="goal-target-weight" type="number" step="0.1" min="25" max="300" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl" />
+          </div>
+          <div>
+            <label for="goal-calories" class="block text-xs font-medium text-slate-600 mb-1">Calorie Target (kcal)</label>
+            <input id="goal-calories" type="number" min="1000" max="5000" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl" />
+          </div>
+          <div>
+            <label for="goal-protein" class="block text-xs font-medium text-slate-600 mb-1">Protein Goal (g)</label>
+            <input id="goal-protein" type="number" min="20" max="350" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl" />
+          </div>
+          <div>
+            <label for="goal-fiber" class="block text-xs font-medium text-slate-600 mb-1">Fiber Goal (g)</label>
+            <input id="goal-fiber" type="number" min="10" max="100" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl" />
+          </div>
+          <div>
+            <label for="goal-fat" class="block text-xs font-medium text-slate-600 mb-1">Fat Limit (g)</label>
+            <input id="goal-fat" type="number" min="15" max="150" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl" />
+          </div>
+          <div>
+            <label for="goal-burn" class="block text-xs font-medium text-slate-600 mb-1">Exercise Burn (kcal)</label>
+            <input id="goal-burn" type="number" min="50" max="2000" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl" />
+          </div>
+          <div>
+            <label for="goal-water" class="block text-xs font-medium text-slate-600 mb-1">Water Goal (L)</label>
+            <input id="goal-water" type="number" step="0.5" min="1" max="8" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl" />
+          </div>
+        </div>
+        <button type="submit" class="w-full py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-semibold">Save Profile &amp; Targets</button>
+      </form>
+
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+        <div class="flex items-center justify-between gap-2">
+          <h2 class="text-sm font-bold text-slate-900">7-Day History &amp; Export</h2>
+          <button id="btn-export-csv" type="button" class="px-3 py-1.5 rounded-xl bg-emerald-600 text-white text-xs font-semibold">Download Tracker CSV</button>
+        </div>
+        <p class="text-[11px] text-slate-500">Exports all logged days in your Google Sheet format (Date, Weight, Target, Meals, Burned, Net, Remaining, Protein, Fiber, Fat, Water, Notes).</p>
+        <div class="relative h-64">
+          <canvas id="calorie-chart"></canvas>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Native-Style Bottom Navigation Bar -->
+  <nav class="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-200 safe-bottom" aria-label="Bottom navigation">
+    <div class="max-w-xl mx-auto grid grid-cols-5">
+      <button type="button" data-tab="tracker" class="tab-btn flex flex-col items-center justify-center py-2.5 text-emerald-600 font-semibold">
+        <span class="text-base leading-none">&#9673;</span>
+        <span class="text-[11px] mt-1">Today</span>
+      </button>
+      <button type="button" data-tab="schedule" class="tab-btn flex flex-col items-center justify-center py-2.5 text-slate-500 font-medium">
+        <span class="text-base leading-none">&#9200;</span>
+        <span class="text-[11px] mt-1">Remind</span>
+      </button>
+      <button type="button" data-tab="meals" class="tab-btn flex flex-col items-center justify-center py-2.5 text-slate-500 font-medium">
+        <span class="text-base leading-none">&#127858;</span>
+        <span class="text-[11px] mt-1">Eat</span>
+      </button>
+      <button type="button" data-tab="exercise" class="tab-btn flex flex-col items-center justify-center py-2.5 text-slate-500 font-medium">
+        <span class="text-base leading-none">&#127939;</span>
+        <span class="text-[11px] mt-1">Burn</span>
+      </button>
+      <button type="button" data-tab="progress" class="tab-btn flex flex-col items-center justify-center py-2.5 text-slate-500 font-medium">
+        <span class="text-base leading-none">&#128200;</span>
+        <span class="text-[11px] mt-1">Goals</span>
+      </button>
+    </div>
+  </nav>
+
+  <script>
+    (function () {
+      const STORAGE_KEY = 'calorie_routine_coach_v3';
+
+      const BUILTIN_MEALS = [
+        { id: 'm1', name: '2 Moong Dal Pudla (Chilla)', slot: 'Breakfast', kcal: 330, protein: 18, fiber: 6, fat: 4, tags: ['Breakfast', 'High-Protein'], note: 'Vegan high-protein Gujarati green/yellow moong pancakes.' },
+        { id: 'm2', name: 'Gujarati Handvo (100g baked slice)', slot: 'Breakfast', kcal: 207, protein: 8.2, fiber: 4.9, fat: 4.8, tags: ['Breakfast', 'Snack'], note: 'Savory fermented rice-lentil & dudhi cake (no dairy).' },
+        { id: 'm3', name: '2 Methi Thepla (light oil, 80g)', slot: 'Breakfast', kcal: 216, protein: 5.6, fiber: 3.5, fat: 8, tags: ['Breakfast', 'Snack'], note: 'Classic Gujarati fenugreek whole-wheat flatbread (no curd/ghee).' },
+        { id: 'm4', name: 'Batata Poha with Peanuts (1 bowl)', slot: 'Breakfast', kcal: 250, protein: 6, fiber: 3.5, fat: 6, tags: ['Breakfast'], note: 'Light flattened rice with mustard seeds, curry leaves & peanuts.' },
+        { id: 'm5', name: '1 Medium Phulka Rotli (no ghee)', slot: 'Lunch', kcal: 94, protein: 3.2, fiber: 3.4, fat: 0.5, tags: ['Lunch'], note: 'Soft whole-wheat Gujarati rotli; pair with dal & shaak.' },
+        { id: 'm6', name: '1 Bajra Rotlo (70g, no ghee)', slot: 'Lunch', kcal: 160, protein: 5.2, fiber: 5.5, fat: 2.5, tags: ['Lunch'], note: 'Traditional Kathiyawadi pearl-millet flatbread.' },
+        { id: 'm7', name: '2 Methi Bajra Rotla (no ghee)', slot: 'Lunch', kcal: 240, protein: 6, fiber: 6, fat: 4, tags: ['Lunch'], note: 'Pearl millet & fresh fenugreek flatbreads.' },
+        { id: 'm8', name: 'Gujarati Tuvar Dal (1 katori, oil)', slot: 'Lunch', kcal: 160, protein: 9, fiber: 4.5, fat: 3, tags: ['Lunch', 'High-Protein'], note: 'Classic Gujarati pigeon pea dal (oil vaghar, no ghee).' },
+        { id: 'm9', name: 'Gujarati Mag nu Shaak (1 katori)', slot: 'Lunch', kcal: 145, protein: 9, fiber: 5, fat: 3, tags: ['Lunch', 'High-Protein'], note: 'Protein-rich whole green moong curry.' },
+        { id: 'm10', name: 'Dudhi Chana Dal Shaak (1 bowl)', slot: 'Lunch', kcal: 132, protein: 5.9, fiber: 3, fat: 3.6, tags: ['Lunch'], note: 'Bottle gourd & split chickpea Gujarati shaak.' },
+        { id: 'm11', name: 'Bhinda nu Shaak (1 small katori)', slot: 'Lunch', kcal: 82, protein: 2.8, fiber: 4.8, fat: 5.8, tags: ['Lunch'], note: 'High-fiber Gujarati okra stir-fry.' },
+        { id: 'm12', name: 'Fankela Mag & Chana Kathol (200g)', slot: 'Snack', kcal: 254, protein: 12, fiber: 8, fat: 7.4, tags: ['Lunch', 'Snack', 'High-Protein'], note: 'Sprouted moong & kala chana salad with lemon & spices.' },
+        { id: 'm13', name: 'Steamed Khaman Dhokla (2 pieces)', slot: 'Snack', kcal: 130, protein: 5, fiber: 2.5, fat: 2, tags: ['Snack'], note: 'Light steamed Gujarati besan snack.' },
+        { id: 'm14', name: 'Gujarati Bhat / Steamed Rice (1 katori)', slot: 'Lunch', kcal: 175, protein: 3.5, fiber: 0.6, fat: 0.5, tags: ['Lunch'], note: 'Pair with Gujarati Tuvar Dal for Dal-Bhat.' },
+        { id: 'm15', name: 'Gujarati Dal Khichdi (1 bowl, 1 tsp oil)', slot: 'Dinner', kcal: 275, protein: 10, fiber: 4, fat: 4.5, tags: ['Lunch'], note: 'Comforting moong dal & rice dinner without ghee.' },
+        { id: 'm16', name: '2 Besan Pudla (Chilla)', slot: 'Dinner', kcal: 270, protein: 15, fiber: 6, fat: 6, tags: ['Breakfast', 'Lunch', 'High-Protein'], note: 'Savory chickpea-flour pudla with grated dudhi or spinach.' }
+      ];
+
+      const EXERCISE_OPTIONS = [
+        { id: 'e1', name: 'Moderate Walking (4.5–5.5 km/h)', met: 3.8, impact: 'low', benefit: 'Gentle fat burn; safest starting point for joints' },
+        { id: 'e2', name: 'Brisk Walking (6+ km/h)', met: 4.3, impact: 'low', benefit: 'Low-impact cardio on flat surfaces' },
+        { id: 'e3', name: 'Yoga / Chair & Mobility Flow', met: 2.5, impact: 'low', benefit: 'Flexibility, core stability & zero joint impact' },
+        { id: 'e4', name: 'Stationary / Recumbent Cycling', met: 6.8, impact: 'low', benefit: 'Supports body weight; protects knees & ankles' },
+        { id: 'e5', name: 'Swimming / Water Aerobics', met: 5.8, impact: 'low', benefit: 'Buoyancy removes joint load while burning fat' },
+        { id: 'e6', name: 'Controlled Strength Training', met: 6.0, impact: 'moderate', benefit: 'Builds muscle around joints (glute bridges, band rows)' },
+        { id: 'e7', name: 'HIIT / Zumba (Jumping)', met: 8.0, impact: 'high', benefit: 'High calorie burn — avoid jumping if overweight/knee pain' },
+        { id: 'e8', name: 'Running (8 km/h)', met: 8.5, impact: 'high', benefit: 'High impact on knees & ankles — build up with walking first' }
+      ];
+
+      function getTodayKey() {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      }
+
+      function getDefaultState() {
+        return {
+          goals: {
+            sex: 'male',
+            heightCm: 170,
+            age: 30,
+            activityFactor: 1.375,
+            currentWeight: 80.0,
+            targetWeight: 74.0,
+            calories: 1800,
+            protein: 120,
+            fiber: 30,
+            fat: 50,
+            burn: 250,
+            water: 3.0
+          },
+          soundEnabled: true,
+          customFoods: [],
+          schedule: [
+            { id: 's1', title: 'Breakfast', time: '08:30', enabled: true, suggestion: '2 Moong Dal Pudla or 100g Gujarati Handvo' },
+            { id: 's2', title: 'Mid-Morning Snack', time: '11:00', enabled: true, suggestion: 'Fankela Mag Kathol or seasonal fruit + water' },
+            { id: 's3', title: 'Lunch', time: '13:30', enabled: true, suggestion: '2 Rotli + Gujarati Tuvar Dal + Bhinda nu Shaak' },
+            { id: 's4', title: 'Evening Snack', time: '17:00', enabled: true, suggestion: '2 Steamed Khaman Dhokla or 1 Methi Thepla' },
+            { id: 's5', title: 'Exercise Session', time: '18:30', enabled: true, suggestion: '30 min Joint-Safe Brisk Walk or Cycling' },
+            { id: 's6', title: 'Dinner', time: '20:30', enabled: true, suggestion: 'Gujarati Dal Khichdi or 2 Besan Pudla' }
+          ],
+          days: {}
+        };
+      }
+
+      function loadState() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('calorie_routine_coach_v2');
+          if (!raw) return getDefaultState();
+          const parsed = JSON.parse(raw);
+          const def = getDefaultState();
+          return {
+            ...def,
+            ...parsed,
+            goals: { ...def.goals, ...(parsed.goals || {}) },
+            customFoods: Array.isArray(parsed.customFoods) ? parsed.customFoods : []
+          };
+        } catch (e) {
+          return getDefaultState();
+        }
+      }
+
+      function saveState() {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        } catch (e) {}
+      }
+
+      let state = loadState();
+      let activeTab = 'tracker';
+      let activeMealFilter = 'All';
+      let triggeredMinuteKey = '';
+      let chartInstance = null;
+      let selectedBaseFood = null;
+
+      const NUTRITION_DB = [
+        { keys: ['undhiyu', 'undhyu'], label: 'Undhiyu (1 bowl)', kcal: 240, protein: 6.5, fiber: 7.5, fat: 12 },
+        { keys: ['khakhra'], label: 'Khakhra (1 piece)', kcal: 65, protein: 2, fiber: 1.5, fat: 2.2 },
+        { keys: ['thepla'], label: 'Methi Thepla (1 piece)', kcal: 108, protein: 2.8, fiber: 1.8, fat: 4 },
+        { keys: ['rotli', 'roti', 'phulka', 'chapati'], label: 'Phulka Rotli (1 piece)', kcal: 94, protein: 3.2, fiber: 3.4, fat: 0.5 },
+        { keys: ['rotlo', 'rotla', 'bajra'], label: 'Bajra Rotlo (1 piece)', kcal: 160, protein: 5.2, fiber: 5.5, fat: 2.5 },
+        { keys: ['jowar'], label: 'Jowar Rotlo (1 piece)', kcal: 135, protein: 3.8, fiber: 4.0, fat: 1.2 },
+        { keys: ['handvo'], label: 'Gujarati Handvo (1 slice)', kcal: 207, protein: 8.2, fiber: 4.9, fat: 4.8 },
+        { keys: ['dhokla', 'khaman'], label: 'Khaman Dhokla (1 piece)', kcal: 65, protein: 2.5, fiber: 1.3, fat: 1.0 },
+        { keys: ['muthiya', 'muthia'], label: 'Steamed Dudhi Muthiya (2 pcs)', kcal: 120, protein: 4.2, fiber: 3.0, fat: 2.5 },
+        { keys: ['patra'], label: 'Patra (2 pieces)', kcal: 135, protein: 3.5, fiber: 2.8, fat: 5.0 },
+        { keys: ['pudla', 'chilla', 'moong dal pudla'], label: 'Moong Dal Pudla (1 pc)', kcal: 165, protein: 9.0, fiber: 3.0, fat: 2.0 },
+        { keys: ['besan pudla', 'besan chilla'], label: 'Besan Pudla (1 pc)', kcal: 135, protein: 7.5, fiber: 3.0, fat: 3.0 },
+        { keys: ['poha', 'pauva'], label: 'Batata Pauva (1 bowl)', kcal: 250, protein: 6.0, fiber: 3.5, fat: 6.0 },
+        { keys: ['khichdi'], label: 'Gujarati Dal Khichdi (1 bowl)', kcal: 275, protein: 10.0, fiber: 4.0, fat: 4.5 },
+        { keys: ['dal dhokli'], label: 'Dal Dhokli (1 bowl)', kcal: 310, protein: 11.0, fiber: 5.0, fat: 6.5 },
+        { keys: ['tuvar dal', 'gujarati dal', 'dal'], label: 'Gujarati Tuvar Dal (1 katori)', kcal: 160, protein: 9.0, fiber: 4.5, fat: 3.0 },
+        { keys: ['mag', 'moong', 'mug'], label: 'Gujarati Mag nu Shaak (1 katori)', kcal: 145, protein: 9.0, fiber: 5.0, fat: 3.0 },
+        { keys: ['dudhi chana'], label: 'Dudhi Chana Dal (1 bowl)', kcal: 132, protein: 5.9, fiber: 3.0, fat: 3.6 },
+        { keys: ['bhinda', 'bhindi'], label: 'Bhinda nu Shaak (1 katori)', kcal: 82, protein: 2.8, fiber: 4.8, fat: 5.8 },
+        { keys: ['ringan', 'baingan', 'oro'], label: 'Ringan nu Shaak / Oro (1 bowl)', kcal: 125, protein: 2.5, fiber: 5.0, fat: 6.0 },
+        { keys: ['sev tameta', 'sev tamatar'], label: 'Sev Tameta Shaak (1 bowl)', kcal: 195, protein: 4.5, fiber: 3.0, fat: 10.0 },
+        { keys: ['batata', 'aloo'], label: 'Batata nu Shaak (1 katori)', kcal: 155, protein: 2.5, fiber: 2.8, fat: 6.5 },
+        { keys: ['tindora', 'tinda', 'guvar', 'karela', 'cabbage', 'kobi'], label: 'Dry Veg Shaak (1 katori)', kcal: 95, protein: 2.5, fiber: 4.2, fat: 4.0 },
+        { keys: ['kathol', 'sprout', 'chana'], label: 'Fankela Kathol / Sprouts (1 bowl)', kcal: 180, protein: 10.5, fiber: 7.0, fat: 3.5 },
+        { keys: ['bhat', 'rice'], label: 'Steamed Bhat / Rice (1 katori)', kcal: 175, protein: 3.5, fiber: 0.6, fat: 0.5 },
+        { keys: ['fafda'], label: 'Fafda (50g)', kcal: 245, protein: 6.0, fiber: 2.5, fat: 14.0 },
+        { keys: ['gathiya', 'sev'], label: 'Gathiya / Sev (50g)', kcal: 265, protein: 6.5, fiber: 2.5, fat: 16.0 },
+        { keys: ['jalebi'], label: 'Jalebi (1 piece)', kcal: 150, protein: 1.0, fiber: 0.2, fat: 5.5 },
+        { keys: ['salad', 'kachumber'], label: 'Fresh Kachumber Salad (1 bowl)', kcal: 45, protein: 1.5, fiber: 3.5, fat: 0.3 },
+        { keys: ['tofu'], label: 'Tofu (100g)', kcal: 76, protein: 8.0, fiber: 0.3, fat: 4.8 },
+        { keys: ['peanuts', 'singdana', 'peanut'], label: 'Roasted Peanuts (30g)', kcal: 170, protein: 7.5, fiber: 2.5, fat: 14.0 },
+        { keys: ['almond', 'badam'], label: 'Almonds (10 pieces)', kcal: 70, protein: 2.5, fiber: 1.5, fat: 6.0 },
+        { keys: ['banana', 'kelu'], label: 'Banana (1 medium)', kcal: 105, protein: 1.3, fiber: 3.1, fat: 0.4 },
+        { keys: ['apple', 'safarjan'], label: 'Apple (1 medium)', kcal: 95, protein: 0.5, fiber: 4.4, fat: 0.3 },
+        { keys: ['papaya', 'papaiya'], label: 'Papaya (1 bowl)', kcal: 62, protein: 0.7, fiber: 2.5, fat: 0.4 },
+        { keys: ['tea', 'chai'], label: 'Black / Vegan Soy Chai (1 cup)', kcal: 45, protein: 1.5, fiber: 0.0, fat: 1.0 },
+        { keys: ['oil', 'tel'], label: 'Cooking Oil (1 tsp)', kcal: 45, protein: 0.0, fiber: 0.0, fat: 5.0 }
+      ];
+
+      function analyzeFoodText(rawText) {
+        const text = rawText.trim().toLowerCase();
+        if (!text) return null;
+
+        const parts = text.split(/\+|,|&|\band\b/i).map((p) => p.trim()).filter(Boolean);
+        let totalKcal = 0, totalProtein = 0, totalFiber = 0, totalFat = 0;
+        const breakdown = [];
+
+        parts.forEach((part) => {
+          const numMatch = part.match(/^(\d+(?:\.\d+)?)\s*(?:x|pcs?|pieces?|bowl|bowls|katori|cup|cups|slice|slices|g|gm|grams)?\b/i);
+          let qty = numMatch ? parseFloat(numMatch[1]) : 1;
+          if (/\b\d+\s*(g|gm|grams)\b/i.test(part)) {
+            const gMatch = part.match(/(\d+(?:\.\d+)?)\s*(g|gm|grams)\b/i);
+            if (gMatch) qty = Math.max(0.25, parseFloat(gMatch[1]) / 100);
+          }
+
+          let matched = null;
+          for (const entry of NUTRITION_DB) {
+            if (entry.keys.some((k) => part.includes(k))) {
+              matched = entry;
+              break;
+            }
+          }
+
+          if (!matched) {
+            const customMatch = getAllFoods().find((f) => f.name.toLowerCase().includes(part) || part.includes(f.name.toLowerCase().split(' ')[0]));
+            if (customMatch && customMatch.name.length > 2) {
+              matched = { label: customMatch.name, kcal: customMatch.kcal, protein: customMatch.protein || 0, fiber: customMatch.fiber || 0, fat: customMatch.fat || 0 };
+            }
+          }
+
+          if (matched) {
+            const k = Math.round(matched.kcal * qty);
+            const p = Math.round(matched.protein * qty * 10) / 10;
+            const fb = Math.round(matched.fiber * qty * 10) / 10;
+            const ft = Math.round(matched.fat * qty * 10) / 10;
+            totalKcal += k; totalProtein += p; totalFiber += fb; totalFat += ft;
+            breakdown.push(`${qty !== 1 ? qty + 'x ' : ''}${matched.label}: ${k} kcal`);
+          } else {
+            // Cooking-style fallback estimate
+            let base = { label: part, kcal: 160, protein: 4.5, fiber: 3.0, fat: 5.0 };
+            if (/fried|bhajiya|samosa|kachori|pakora|puri|sev|gathiya|jalebi/.test(part)) {
+              base = { label: part + ' (fried est.)', kcal: 240, protein: 4.0, fiber: 2.0, fat: 13.0 };
+            } else if (/steamed|boiled|salad|fruit|soup/.test(part)) {
+              base = { label: part + ' (light est.)', kcal: 95, protein: 3.5, fiber: 4.0, fat: 1.5 };
+            } else if (/shaak|sabzi|curry|dal/.test(part)) {
+              base = { label: part + ' (curry est.)', kcal: 150, protein: 5.5, fiber: 4.0, fat: 5.5 };
+            }
+            const k = Math.round(base.kcal * qty);
+            const p = Math.round(base.protein * qty * 10) / 10;
+            const fb = Math.round(base.fiber * qty * 10) / 10;
+            const ft = Math.round(base.fat * qty * 10) / 10;
+            totalKcal += k; totalProtein += p; totalFiber += fb; totalFat += ft;
+            breakdown.push(`${qty !== 1 ? qty + 'x ' : ''}${base.label}: ~${k} kcal`);
+          }
+        });
+
+        return {
+          kcal: Math.round(totalKcal),
+          protein: Math.round(totalProtein * 10) / 10,
+          fiber: Math.round(totalFiber * 10) / 10,
+          fat: Math.round(totalFat * 10) / 10,
+          breakdown
+        };
+      }
+
+      function exportDailyTrackerCsv() {
+        const headers = [
+          'Date', 'Weight (kg)', 'Calorie Target', 'Breakfast (kcal)', 'Lunch (kcal)',
+          'Dinner (kcal)', 'Snacks (kcal)', 'Total Consumed (kcal)', 'Exercise Burned (kcal)',
+          'Net Calories (kcal)', 'Remaining vs Target (kcal)', 'Protein (g)', 'Fiber (g)',
+          'Fat (g)', 'Water (L)', 'Notes'
+        ];
+        const keys = Object.keys(state.days).sort();
+        if (keys.length === 0) keys.push(getTodayKey());
+
+        const rows = [headers.join(',')];
+        keys.forEach((dateKey) => {
+          const d = state.days[dateKey] || { meals: [], exercises: [], waterLiters: 0, weightKg: state.goals.currentWeight };
+          const sumSlot = (slot) => d.meals.filter((m) => m.slot === slot).reduce((a, b) => a + (Number(b.kcal) || 0), 0);
+          const bfast = sumSlot('Breakfast');
+          const lunch = sumSlot('Lunch');
+          const dinner = sumSlot('Dinner');
+          const snacks = sumSlot('Snack');
+          const consumed = bfast + lunch + dinner + snacks;
+          const burned = d.exercises.reduce((a, b) => a + (Number(b.kcal) || 0), 0);
+          const net = consumed - burned;
+          const target = Number(state.goals.calories) || 1800;
+          const remaining = target - net;
+          const protein = Math.round(d.meals.reduce((a, b) => a + (Number(b.protein) || 0), 0) * 10) / 10;
+          const fiber = Math.round(d.meals.reduce((a, b) => a + (Number(b.fiber) || 0), 0) * 10) / 10;
+          const fat = Math.round(d.meals.reduce((a, b) => a + (Number(b.fat) || 0), 0) * 10) / 10;
+          const notes = [...d.meals.map((m) => m.name), ...d.exercises.map((e) => e.name)].join('; ').replace(/"/g, '""');
+
+          rows.push([
+            dateKey,
+            d.weightKg || state.goals.currentWeight,
+            target,
+            bfast,
+            lunch,
+            dinner,
+            snacks,
+            consumed,
+            burned,
+            net,
+            remaining,
+            protein,
+            fiber,
+            fat,
+            (d.waterLiters || 0).toFixed(2),
+            `"${notes}"`
+          ].join(','));
+        });
+
+        const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `daily_calorie_tracker_${getTodayKey()}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('Downloaded daily tracker CSV!');
+      }
+
+      function getAllFoods() {
+        return [...state.customFoods, ...BUILTIN_MEALS];
+      }
+
+      function computeBmiMetrics() {
+        const weight = Number(state.goals.currentWeight) || 80;
+        const heightCm = Number(state.goals.heightCm) || 170;
+        const age = Number(state.goals.age) || 30;
+        const sex = state.goals.sex === 'female' ? 'female' : 'male';
+        const activity = Number(state.goals.activityFactor) || 1.375;
+
+        const hM = heightCm / 100;
+        const bmi = hM > 0 ? Math.round((weight / (hM * hM)) * 10) / 10 : 25;
+
+        let category = 'Healthy';
+        let colorClass = 'text-emerald-600';
+        let badgeClass = 'bg-emerald-100 text-emerald-800';
+        if (bmi < 18.5) {
+          category = 'Underweight';
+          colorClass = 'text-sky-600';
+          badgeClass = 'bg-sky-100 text-sky-800';
+        } else if (bmi < 25) {
+          category = 'Healthy';
+          colorClass = 'text-emerald-600';
+          badgeClass = 'bg-emerald-100 text-emerald-800';
+        } else if (bmi < 30) {
+          category = 'Overweight';
+          colorClass = 'text-amber-600';
+          badgeClass = 'bg-amber-100 text-amber-800';
+        } else {
+          category = 'Obese';
+          colorClass = 'text-rose-600';
+          badgeClass = 'bg-rose-100 text-rose-800';
+        }
+
+        // Mifflin-St Jeor BMR
+        const bmr = sex === 'female'
+          ? (10 * weight + 6.25 * heightCm - 5 * age - 161)
+          : (10 * weight + 6.25 * heightCm - 5 * age + 5);
+        const maintenance = Math.round(bmr * activity);
+        const minFloor = sex === 'female' ? 1200 : 1500;
+        const recommended = bmi < 18.5 ? maintenance : Math.max(minFloor, maintenance - 500);
+
+        return { bmi, category, colorClass, badgeClass, maintenance, minFloor, recommended };
+      }
+
+      function ensureTodayRecord() {
+        const key = getTodayKey();
+        if (!state.days[key]) {
+          state.days[key] = {
+            meals: [],
+            exercises: [],
+            waterLiters: 0,
+            weightKg: state.goals.currentWeight
+          };
+        }
+        return state.days[key];
+      }
+
+      function showToast(msg) {
+        const toast = document.getElementById('toast');
+        toast.textContent = msg;
+        toast.classList.remove('hidden');
+        clearTimeout(showToast._timer);
+        showToast._timer = setTimeout(() => toast.classList.add('hidden'), 2600);
+      }
+
+      function playChime() {
+        if (!state.soundEnabled) return;
+        try {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (!AudioCtx) return;
+          const ctx = new AudioCtx();
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+          osc.frequency.setValueAtTime(880, ctx.currentTime + 0.14);
+          gain.gain.setValueAtTime(0.15, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.45);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.45);
+        } catch (e) {}
+      }
+
+      function triggerReminderAlert(title, subtitle) {
+        document.getElementById('reminder-banner-title').textContent = `Reminder: ${title}`;
+        document.getElementById('reminder-banner-sub').textContent = subtitle;
+        document.getElementById('reminder-banner').classList.remove('hidden');
+        playChime();
+        try {
+          if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification(`Time for ${title}`, { body: subtitle });
+          }
+        } catch (e) {}
+      }
+
+      function switchTab(tabName) {
+        activeTab = tabName;
+        document.querySelectorAll('.tab-panel').forEach((panel) => {
+          panel.classList.toggle('hidden', panel.id !== `tab-${tabName}`);
+        });
+        document.querySelectorAll('.tab-btn').forEach((btn) => {
+          const isCurrent = btn.dataset.tab === tabName;
+          btn.className = isCurrent
+            ? 'tab-btn flex flex-col items-center justify-center py-2.5 text-emerald-600 font-semibold'
+            : 'tab-btn flex flex-col items-center justify-center py-2.5 text-slate-500 font-medium';
+        });
+        if (tabName === 'progress') renderChart();
+      }
+
+      function computeExerciseBurn(met, minutes) {
+        const w = Number(state.goals.currentWeight) || 70;
+        return Math.round(met * w * (minutes / 60));
+      }
+
+      function updateExercisePreview() {
+        const met = Number(document.getElementById('exercise-type').value) || 3.8;
+        const mins = Math.max(0, Number(document.getElementById('exercise-minutes').value) || 0);
+        document.getElementById('exercise-est-preview').textContent = `${computeExerciseBurn(met, mins)} kcal`;
+      }
+
+      function applyPortionToForm() {
+        if (!selectedBaseFood) return;
+        const mult = Number(document.getElementById('meal-portion').value) || 1;
+        document.getElementById('meal-name').value = mult === 1 ? selectedBaseFood.name : `${mult}x ${selectedBaseFood.name}`;
+        document.getElementById('meal-slot').value = selectedBaseFood.slot || 'Lunch';
+        document.getElementById('meal-calories').value = Math.round((selectedBaseFood.kcal || 0) * mult);
+        document.getElementById('meal-protein').value = Math.round((selectedBaseFood.protein || 0) * mult * 10) / 10;
+        document.getElementById('meal-fiber').value = Math.round((selectedBaseFood.fiber || 0) * mult * 10) / 10;
+        document.getElementById('meal-fat').value = Math.round((selectedBaseFood.fat || 0) * mult * 10) / 10;
+      }
+
+      function renderBmiSection() {
+        const m = computeBmiMetrics();
+        document.getElementById('header-bmi-pill').textContent = `BMI ${m.bmi}`;
+        document.getElementById('bmi-big-value').textContent = `${m.bmi}`;
+        document.getElementById('bmi-big-value').className = `text-2xl font-bold ${m.colorClass}`;
+        const catEl = document.getElementById('bmi-category-badge');
+        catEl.textContent = m.category;
+        catEl.className = `inline-block text-[10px] font-bold px-2 py-0.5 rounded-full ${m.badgeClass}`;
+
+        document.getElementById('bmi-maintenance-kcal').textContent = `${m.maintenance.toLocaleString()} kcal/day`;
+        document.getElementById('bmi-recommended-kcal').textContent = `${m.recommended.toLocaleString()} kcal/day`;
+        document.getElementById('bmi-min-floor-kcal').textContent = `${m.minFloor.toLocaleString()} kcal/day`;
+      }
+
+      function renderTracker() {
+        const m = computeBmiMetrics();
+        const today = ensureTodayRecord();
+        const consumed = today.meals.reduce((s, item) => s + (Number(item.kcal) || 0), 0);
+        const protein = Math.round(today.meals.reduce((s, item) => s + (Number(item.protein) || 0), 0) * 10) / 10;
+        const fiber = Math.round(today.meals.reduce((s, item) => s + (Number(item.fiber) || 0), 0) * 10) / 10;
+        const fat = Math.round(today.meals.reduce((s, item) => s + (Number(item.fat) || 0), 0) * 10) / 10;
+        const burned = today.exercises.reduce((s, ex) => s + (Number(ex.kcal) || 0), 0);
+        const net = consumed - burned;
+        const target = Number(state.goals.calories) || 1800;
+        const remaining = target - net;
+
+        document.getElementById('kpi-consumed').textContent = `${consumed.toLocaleString()} kcal`;
+        document.getElementById('kpi-target-sub').textContent = `${target.toLocaleString()} kcal`;
+        document.getElementById('kpi-burned').textContent = `${burned.toLocaleString()} kcal`;
+
+        const remEl = document.getElementById('kpi-remaining');
+        remEl.textContent = `${remaining >= 0 ? remaining.toLocaleString() : `-${Math.abs(remaining).toLocaleString()}`} kcal`;
+        remEl.className = remaining >= 0 ? 'text-3xl font-bold text-emerald-600 mt-0.5' : 'text-3xl font-bold text-rose-600 mt-0.5';
+        document.getElementById('kpi-net-sub').textContent = `Net: ${net.toLocaleString()} kcal`;
+
+        const pct = target > 0 ? Math.max(0, Math.round((net / target) * 100)) : 0;
+        const bar = document.getElementById('calorie-progress-bar');
+        bar.style.width = `${Math.min(100, pct)}%`;
+        bar.className = net > target ? 'h-full bg-rose-500 rounded-full transition-all duration-300' : 'h-full bg-emerald-600 rounded-full transition-all duration-300';
+        document.getElementById('calorie-progress-pct').textContent = `${pct}% of goal`;
+
+        document.getElementById('min-calorie-badge').textContent =
+          `Your safe minimum floor: ${m.minFloor.toLocaleString()} kcal/day (BMI ${m.bmi} — ${m.category})`;
+
+        const pGoal = Number(state.goals.protein) || 120;
+        const fGoal = Number(state.goals.fiber) || 30;
+        const fatGoal = Number(state.goals.fat) || 50;
+        document.getElementById('macro-protein-val').textContent = `${protein}g`;
+        document.getElementById('macro-protein-goal').textContent = `Goal: ${pGoal}g`;
+        document.getElementById('macro-protein-bar').style.width = `${Math.min(100, Math.round((protein / pGoal) * 100))}%`;
+
+        document.getElementById('macro-fiber-val').textContent = `${fiber}g`;
+        document.getElementById('macro-fiber-goal').textContent = `Goal: ${fGoal}g`;
+        document.getElementById('macro-fiber-bar').style.width = `${Math.min(100, Math.round((fiber / fGoal) * 100))}%`;
+
+        document.getElementById('macro-fat-val').textContent = `${fat}g`;
+        document.getElementById('macro-fat-goal').textContent = `Limit: ${fatGoal}g`;
+        document.getElementById('macro-fat-bar').style.width = `${Math.min(100, Math.round((fat / fatGoal) * 100))}%`;
+
+        document.getElementById('kpi-water-sub').textContent = `${today.waterLiters.toFixed(2)} / ${Number(state.goals.water).toFixed(1)} L`;
+
+        const weightInput = document.getElementById('today-weight-input');
+        if (document.activeElement !== weightInput) {
+          weightInput.value = today.weightKg || state.goals.currentWeight;
+        }
+
+        const guide = document.getElementById('calorie-guidance-text');
+        if (consumed === 0 && burned === 0) {
+          guide.textContent = 'Use Smart Search above or tap Eat below to log Gujarati vegan meals.';
+        } else if (remaining >= 0) {
+          guide.textContent = `${remaining.toLocaleString()} kcal left today to stay in your weight-loss deficit.`;
+        } else {
+          guide.textContent = `${Math.abs(remaining).toLocaleString()} kcal over target. A 25–30 min joint-safe walk helps balance it.`;
+        }
+
+        const listEl = document.getElementById('today-log-list');
+        const combined = [
+          ...today.meals.map((item) => ({ ...item, kind: 'meal' })),
+          ...today.exercises.map((e) => ({ ...e, kind: 'exercise' }))
+        ].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+        if (combined.length === 0) {
+          listEl.innerHTML = '<p class="text-xs text-slate-400 py-4 text-center">No meals or workouts logged yet today.</p>';
+        } else {
+          listEl.innerHTML = combined
+            .map((item) => {
+              if (item.kind === 'meal') {
+                return `
+                  <div class="py-2.5 flex items-center justify-between gap-2">
+                    <div class="min-w-0">
+                      <p class="text-xs font-semibold text-slate-800 truncate">${item.name}</p>
+                      <p class="text-[11px] text-slate-500">${item.slot} &bull; P: ${item.protein || 0}g &bull; Fib: ${item.fiber || 0}g &bull; Fat: ${item.fat || 0}g</p>
+                    </div>
+                    <div class="flex items-center gap-2 shrink-0">
+                      <span class="text-xs font-bold text-slate-800">+${item.kcal}</span>
+                      <button type="button" data-delete-kind="meal" data-delete-id="${item.id}" class="text-[11px] text-rose-600 font-medium">Del</button>
+                    </div>
+                  </div>
+                `;
+              }
+              return `
+                <div class="py-2.5 flex items-center justify-between gap-2">
+                  <div class="min-w-0">
+                    <p class="text-xs font-semibold text-slate-800 truncate">${item.name}</p>
+                    <p class="text-[11px] text-slate-500">${item.minutes} min workout</p>
+                  </div>
+                  <div class="flex items-center gap-2 shrink-0">
+                    <span class="text-xs font-bold text-orange-600">-${item.kcal}</span>
+                    <button type="button" data-delete-kind="exercise" data-delete-id="${item.id}" class="text-[11px] text-rose-600 font-medium">Del</button>
+                  </div>
+                </div>
+              `;
+            })
+            .join('');
+        }
+      }
+
+      function renderSchedule() {
+        document.getElementById('toggle-sound').checked = !!state.soundEnabled;
+        document.getElementById('schedule-list').innerHTML = state.schedule
+          .map((item) => `
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-2.5">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <h3 class="text-sm font-semibold text-slate-900">${item.title}</h3>
+                  <p class="text-xs text-slate-500 mt-0.5">${item.suggestion}</p>
+                </div>
+                <label class="inline-flex items-center gap-1.5 text-xs font-medium text-slate-700 cursor-pointer shrink-0">
+                  <input type="checkbox" data-schedule-toggle="${item.id}" ${item.enabled ? 'checked' : ''} class="rounded border-slate-300 text-emerald-600" />
+                  On
+                </label>
+              </div>
+              <div class="flex items-center justify-between pt-2 border-t border-slate-100">
+                <label class="text-xs text-slate-600 font-medium" for="sched-time-${item.id}">Time</label>
+                <input id="sched-time-${item.id}" type="time" data-schedule-time="${item.id}" value="${item.time}" class="px-2.5 py-1 text-sm border border-slate-300 rounded-lg" />
+              </div>
+            </div>
+          `)
+          .join('');
+      }
+
+      function renderMeals() {
+        document.querySelectorAll('.meal-filter-btn').forEach((btn) => {
+          const active = btn.dataset.filter === activeMealFilter;
+          btn.className = active
+            ? 'meal-filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 text-white'
+            : 'meal-filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700';
+        });
+
+        const all = getAllFoods();
+        const filtered = all.filter((m) => {
+          if (activeMealFilter === 'All') return true;
+          if (activeMealFilter === 'Custom') return !!m.isCustom;
+          return (m.tags || []).includes(activeMealFilter) || m.slot === activeMealFilter;
+        });
+
+        const grid = document.getElementById('meal-ideas-grid');
+        if (filtered.length === 0) {
+          grid.innerHTML = '<p class="text-xs text-slate-400 text-center py-6 bg-white rounded-2xl border border-slate-200">No foods in this filter yet. Tap "+ Add Food" to add your own!</p>';
+          return;
+        }
+        grid.innerHTML = filtered
+          .map((m) => `
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-2.5">
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-[11px] font-semibold uppercase tracking-wide ${m.isCustom ? 'text-indigo-700 bg-indigo-50' : 'text-emerald-700 bg-emerald-50'} px-2 py-0.5 rounded-full">${m.isCustom ? 'My Food' : m.slot}</span>
+                <span class="text-xs font-bold text-slate-800">${m.kcal} kcal</span>
+              </div>
+              <div>
+                <h3 class="text-sm font-semibold text-slate-900">${m.name}</h3>
+                <p class="text-[11px] text-slate-500 mt-0.5">${m.note || 'Custom Gujarati vegan dish'}</p>
+              </div>
+              <div class="grid grid-cols-3 gap-1.5 text-center bg-slate-50 rounded-xl p-2 text-[11px]">
+                <div><span class="text-slate-400">Protein</span> <strong class="text-indigo-600">${m.protein || 0}g</strong></div>
+                <div><span class="text-slate-400">Fiber</span> <strong class="text-emerald-600">${m.fiber || 0}g</strong></div>
+                <div><span class="text-slate-400">Fat</span> <strong class="text-amber-600">${m.fat || 0}g</strong></div>
+              </div>
+              <div class="flex gap-2">
+                <button type="button" data-quick-meal="${m.id}" class="flex-1 py-2 rounded-xl bg-emerald-600 active:bg-emerald-700 text-white text-xs font-semibold">
+                  + Log to Today
+                </button>
+                ${m.isCustom ? `<button type="button" data-delete-custom="${m.id}" class="px-3 py-2 rounded-xl bg-rose-50 text-rose-600 text-xs font-semibold">Delete</button>` : ''}
+              </div>
+            </div>
+          `)
+          .join('');
+      }
+
+      function renderExercisePlanner() {
+        const m = computeBmiMetrics();
+        const isHeavy = m.bmi >= 25;
+        const burnGoal = Number(state.goals.burn) || 250;
+        const weight = Number(state.goals.currentWeight) || 70;
+
+        // Safety card
+        const safetyCard = document.getElementById('exercise-safety-card');
+        const safetyTitle = document.getElementById('exercise-safety-title');
+        const safetyBadge = document.getElementById('exercise-bmi-badge');
+        const safetyBody = document.getElementById('exercise-safety-body');
+        const safetyRules = document.getElementById('exercise-safety-rules');
+
+        safetyBadge.textContent = `BMI ${m.bmi} (${m.category})`;
+        if (isHeavy) {
+          safetyCard.className = 'bg-amber-50 border border-amber-200 p-4 rounded-2xl space-y-2';
+          safetyTitle.className = 'text-sm font-bold text-amber-900';
+          safetyTitle.textContent = 'Joint-Safe Exercise Guidance (Overweight / Obese)';
+          safetyBadge.className = 'text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-200 text-amber-950';
+          safetyBody.className = 'text-xs text-amber-900 leading-relaxed';
+          safetyBody.textContent = 'Extra body weight increases stress on knees and ankles. Start with 10–20 min low-impact sessions and build toward 150 min/week.';
+          safetyRules.innerHTML = `
+            <div class="bg-white/80 p-2.5 rounded-xl border border-emerald-200">
+              <p class="font-bold text-emerald-800">Recommended (Joint-Safe)</p>
+              <p class="text-slate-600 mt-0.5">Flat walking, stationary cycling, swimming/water aerobics, yoga, controlled strength.</p>
+            </div>
+            <div class="bg-white/80 p-2.5 rounded-xl border border-rose-200">
+              <p class="font-bold text-rose-700">Avoid / Use Caution Initially</p>
+              <p class="text-slate-600 mt-0.5">Running, jumping jacks, burpees, box jumps &amp; high-impact HIIT until joints adapt.</p>
+            </div>
+          `;
+        } else {
+          safetyCard.className = 'bg-emerald-50 border border-emerald-200 p-4 rounded-2xl space-y-2';
+          safetyTitle.className = 'text-sm font-bold text-emerald-900';
+          safetyTitle.textContent = 'Healthy BMI Exercise Guidance';
+          safetyBadge.className = 'text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-200 text-emerald-950';
+          safetyBody.className = 'text-xs text-emerald-900 leading-relaxed';
+          safetyBody.textContent = 'Your BMI is in a lower-impact range. Aim for 150–300 min/week of moderate aerobic activity plus 2 days of strength training.';
+          safetyRules.innerHTML = '';
+        }
+
+        // Weekly logged minutes
+        let weekMins = 0;
+        for (let i = 0; i < 7; i++) {
+          const d = new Date();
+          d.setDate(d.getDate() - i);
+          const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+          const rec = state.days[key];
+          if (rec && Array.isArray(rec.exercises)) {
+            weekMins += rec.exercises.reduce((s, e) => s + (Number(e.minutes) || 0), 0);
+          }
+        }
+        document.getElementById('weekly-exercise-mins').textContent =
+          `Weekly target: 150–300 min moderate activity (${weekMins} min logged in last 7 days)`;
+
+        document.getElementById('exercise-goal-pill').textContent = `Goal: ${burnGoal} kcal`;
+        document.getElementById('exercise-needed-summary').textContent =
+          `For ${weight.toFixed(1)} kg body weight. Pick any activity to hit your ${burnGoal} kcal burn goal.`;
+
+        document.getElementById('exercise-plan-grid').innerHTML = EXERCISE_OPTIONS
+          .map((ex) => {
+            const kcalPerHour = ex.met * weight;
+            const minsNeeded = Math.max(10, Math.round((burnGoal / kcalPerHour) * 60));
+            const estBurn = computeExerciseBurn(ex.met, minsNeeded);
+            const showCaution = isHeavy && ex.impact === 'high';
+            const badge = showCaution
+              ? '<span class="text-[10px] font-semibold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-full">High Impact &bull; Caution</span>'
+              : '<span class="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">Joint-Safe</span>';
+
+            return `
+              <div class="bg-white p-4 rounded-2xl border ${showCaution ? 'border-rose-200' : 'border-slate-200'} shadow-sm space-y-2.5">
+                <div class="flex items-center justify-between gap-2">
+                  ${badge}
+                  <span class="text-xs font-bold text-slate-800">~${estBurn} kcal</span>
+                </div>
+                <div>
+                  <h3 class="text-sm font-semibold text-slate-900">${ex.name}</h3>
+                  <p class="text-xs text-slate-500 mt-0.5">${ex.benefit} &bull; <strong>${minsNeeded} min needed</strong></p>
+                </div>
+                <button type="button" data-quick-ex-name="${ex.name}" data-quick-ex-mins="${minsNeeded}" data-quick-ex-kcal="${estBurn}" class="w-full py-2 rounded-xl ${showCaution ? 'bg-slate-600' : 'bg-orange-600 active:bg-orange-700'} text-white text-xs font-semibold">
+                  Log ${minsNeeded} min (${estBurn} kcal)
+                </button>
+              </div>
+            `;
+          })
+          .join('');
+      }
+
+      function renderGoalsForm() {
+        document.getElementById('goal-sex').value = state.goals.sex || 'male';
+        document.getElementById('goal-height').value = state.goals.heightCm || 170;
+        document.getElementById('goal-age').value = state.goals.age || 30;
+        document.getElementById('goal-activity').value = String(state.goals.activityFactor || 1.375);
+        document.getElementById('goal-current-weight').value = state.goals.currentWeight;
+        document.getElementById('goal-target-weight').value = state.goals.targetWeight;
+        document.getElementById('goal-calories').value = state.goals.calories;
+        document.getElementById('goal-protein').value = state.goals.protein;
+        document.getElementById('goal-fiber').value = state.goals.fiber;
+        document.getElementById('goal-fat').value = state.goals.fat;
+        document.getElementById('goal-burn').value = state.goals.burn;
+        document.getElementById('goal-water').value = state.goals.water;
+      }
+
+      function renderChart() {
+        const ctx = document.getElementById('calorie-chart');
+        if (!ctx || typeof Chart === 'undefined') return;
+
+        const labels = [];
+        const netValues = [];
+        const targetValues = [];
+        for (let i = 6; i >= 0; i--) {
+          const d = new Date();
+          d.setDate(d.getDate() - i);
+          const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+          labels.push(d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }));
+          const rec = state.days[key];
+          if (rec) {
+            const c = rec.meals.reduce((s, m) => s + (Number(m.kcal) || 0), 0);
+            const b = rec.exercises.reduce((s, e) => s + (Number(e.kcal) || 0), 0);
+            netValues.push(c - b);
+          } else {
+            netValues.push(0);
+          }
+          targetValues.push(Number(state.goals.calories) || 1800);
+        }
+
+        if (chartInstance) chartInstance.destroy();
+        chartInstance = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels,
+            datasets: [
+              { label: 'Net Calories', data: netValues, backgroundColor: '#059669', borderRadius: 6 },
+              { label: 'Target', data: targetValues, type: 'line', borderColor: '#f97316', borderDash: [5, 5], pointRadius: 2, fill: false }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: { y: { beginAtZero: true } }
+          }
+        });
+      }
+
+      function updateCountdown() {
+        const now = new Date();
+        const currentMins = now.getHours() * 60 + now.getMinutes();
+        const currentSec = now.getSeconds();
+        const enabledItems = state.schedule
+          .filter((s) => s.enabled && s.time)
+          .map((s) => {
+            const [hh, mm] = s.time.split(':').map(Number);
+            return { ...s, totalMins: hh * 60 + mm };
+          })
+          .sort((a, b) => a.totalMins - b.totalMins);
+
+        if (enabledItems.length === 0) {
+          document.getElementById('next-reminder-text').textContent = 'Paused';
+          return;
+        }
+
+        const minuteKey = `${getTodayKey()}-${now.getHours()}:${now.getMinutes()}`;
+        enabledItems.forEach((item) => {
+          if (item.totalMins === currentMins && currentSec <= 2 && triggeredMinuteKey !== minuteKey) {
+            triggeredMinuteKey = minuteKey;
+            triggerReminderAlert(item.title, item.suggestion);
+          }
+        });
+
+        let next = enabledItems.find((item) => item.totalMins > currentMins);
+        let diffMins;
+        if (next) {
+          diffMins = next.totalMins - currentMins;
+        } else {
+          next = enabledItems[0];
+          diffMins = 24 * 60 - currentMins + next.totalMins;
+        }
+        const hrs = Math.floor(diffMins / 60);
+        const mins = diffMins % 60;
+        const timeStr = hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
+        document.getElementById('next-reminder-text').textContent = `${next.title} (${timeStr})`;
+      }
+
+      function renderAll() {
+        document.getElementById('today-date-label').textContent = new Date().toLocaleDateString(undefined, {
+          weekday: 'short', month: 'short', day: 'numeric', year: 'numeric'
+        });
+        renderBmiSection();
+        renderTracker();
+        renderSchedule();
+        renderMeals();
+        renderExercisePlanner();
+        renderGoalsForm();
+        updateExercisePreview();
+        updateCountdown();
+      }
+
+      // Smart search handler
+      const searchInput = document.getElementById('smart-food-search');
+      const searchResults = document.getElementById('smart-search-results');
+
+      searchInput.addEventListener('input', () => {
+        const q = searchInput.value.trim().toLowerCase();
+        if (!q) {
+          searchResults.classList.add('hidden');
+          searchResults.innerHTML = '';
+          return;
+        }
+        const matches = getAllFoods().filter((f) => f.name.toLowerCase().includes(q)).slice(0, 6);
+        if (matches.length === 0) {
+          searchResults.innerHTML = '<p class="px-3 py-2 text-xs text-slate-400">No match — enter details below &amp; check "Save to my library".</p>';
+        } else {
+          searchResults.innerHTML = matches
+            .map((m) => `
+              <button type="button" data-pick-food="${m.id}" class="w-full text-left px-3 py-2 hover:bg-emerald-50 flex items-center justify-between gap-2">
+                <span class="text-xs font-medium text-slate-800 truncate">${m.name}</span>
+                <span class="text-[11px] text-slate-500 shrink-0">${m.kcal} kcal &bull; P:${m.protein}g</span>
+              </button>
+            `)
+            .join('');
+        }
+        searchResults.classList.remove('hidden');
+      });
+
+      searchResults.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-pick-food]');
+        if (!btn) return;
+        const found = getAllFoods().find((f) => f.id === btn.dataset.pickFood);
+        if (!found) return;
+        selectedBaseFood = found;
+        document.getElementById('meal-portion').value = '1';
+        applyPortionToForm();
+        searchInput.value = '';
+        searchResults.classList.add('hidden');
+      });
+
+      document.getElementById('meal-portion').addEventListener('change', applyPortionToForm);
+
+      document.querySelectorAll('.tab-btn').forEach((btn) => {
+        btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+      });
+
+      document.getElementById('btn-test-alert').addEventListener('click', () => {
+        triggerReminderAlert('Meal / Workout Check-In', 'Stay hydrated and log your next Gujarati vegan meal!');
+      });
+
+      document.getElementById('reminder-banner-dismiss').addEventListener('click', () => {
+        document.getElementById('reminder-banner').classList.add('hidden');
+      });
+
+      document.getElementById('reminder-banner-action').addEventListener('click', () => {
+        document.getElementById('reminder-banner').classList.add('hidden');
+        switchTab('meals');
+      });
+
+      document.getElementById('btn-water-plus').addEventListener('click', () => {
+        const today = ensureTodayRecord();
+        today.waterLiters = Math.round((today.waterLiters + 0.25) * 100) / 100;
+        saveState();
+        renderTracker();
+      });
+
+      document.getElementById('btn-water-minus').addEventListener('click', () => {
+        const today = ensureTodayRecord();
+        today.waterLiters = Math.max(0, Math.round((today.waterLiters - 0.25) * 100) / 100);
+        saveState();
+        renderTracker();
+      });
+
+      document.getElementById('btn-save-weight').addEventListener('click', () => {
+        const val = parseFloat(document.getElementById('today-weight-input').value);
+        if (!val || val < 25 || val > 300) {
+          showToast('Enter weight between 25 and 300 kg.');
+          return;
+        }
+        const today = ensureTodayRecord();
+        today.weightKg = val;
+        state.goals.currentWeight = val;
+        saveState();
+        function runMainFoodAnalysis() {
+        const raw = document.getElementById('smart-food-search').value.trim() || document.getElementById('meal-name').value.trim();
+        if (!raw) {
+          showToast('Type a food name first to analyze.');
+          return;
+        }
+        const res = analyzeFoodText(raw);
+        if (!res) return;
+        selectedBaseFood = { name: raw, slot: document.getElementById('meal-slot').value, kcal: res.kcal, protein: res.protein, fiber: res.fiber, fat: res.fat };
+        document.getElementById('meal-portion').value = '1';
+        document.getElementById('meal-name').value = raw;
+        document.getElementById('meal-calories').value = res.kcal;
+        document.getElementById('meal-protein').value = res.protein;
+        document.getElementById('meal-fiber').value = res.fiber;
+        document.getElementById('meal-fat').value = res.fat;
+
+        const box = document.getElementById('food-analysis-box');
+        box.innerHTML = `<p class="font-bold">Analysis: ${res.kcal} kcal &bull; P: ${res.protein}g &bull; Fib: ${res.fiber}g &bull; Fat: ${res.fat}g</p><p class="text-[11px] text-emerald-800">${res.breakdown.join(' | ')}</p>`;
+        box.classList.remove('hidden');
+        searchResults.classList.add('hidden');
+      }
+
+      document.getElementById('btn-analyze-food').addEventListener('click', runMainFoodAnalysis);
+
+      document.getElementById('btn-analyze-custom').addEventListener('click', () => {
+        const raw = document.getElementById('custom-food-name').value.trim();
+        if (!raw) {
+          showToast('Enter a dish name first to analyze.');
+          return;
+        }
+        const res = analyzeFoodText(raw);
+        if (!res) return;
+        document.getElementById('custom-food-kcal').value = res.kcal;
+        document.getElementById('custom-food-protein').value = res.protein;
+        document.getElementById('custom-food-fiber').value = res.fiber;
+        document.getElementById('custom-food-fat').value = res.fat;
+        showToast(`Analyzed: ${res.kcal} kcal (P:${res.protein}g, Fib:${res.fiber}g, Fat:${res.fat}g)`);
+      });
+
+      document.getElementById('btn-export-csv').addEventListener('click', exportDailyTrackerCsv);
+      document.getElementById('btn-export-csv-today').addEventListener('click', exportDailyTrackerCsv);
+
+      renderAll();
+        showToast(`Saved weight: ${val.toFixed(1)} kg`);
+      });
+
+      document.getElementById('form-add-meal').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const name = document.getElementById('meal-name').value.trim();
+        const slot = document.getElementById('meal-slot').value;
+        const kcal = parseInt(document.getElementById('meal-calories').value, 10);
+        const protein = parseFloat(document.getElementById('meal-protein').value) || 0;
+        const fiber = parseFloat(document.getElementById('meal-fiber').value) || 0;
+        const fat = parseFloat(document.getElementById('meal-fat').value) || 0;
+        const saveLib = document.getElementById('save-to-library').checked;
+        if (!name || !kcal || kcal <= 0) return;
+
+        const today = ensureTodayRecord();
+        today.meals.push({ id: `m-${Date.now()}`, name, slot, kcal, protein, fiber, fat, createdAt: Date.now() });
+
+        if (saveLib) {
+          state.customFoods.unshift({
+            id: `c-${Date.now()}`,
+            name,
+            slot,
+            kcal,
+            protein,
+            fiber,
+            fat,
+            isCustom: true,
+            tags: [slot, 'Custom'],
+            note: 'Added to your custom food library'
+          });
+          renderMeals();
+        }
+
+        selectedBaseFood = null;
+        saveState();
+        e.target.reset();
+        renderTracker();
+        showToast(`Logged ${name} (+${kcal} kcal)`);
+      });
+
+      document.getElementById('exercise-type').addEventListener('change', updateExercisePreview);
+      document.getElementById('exercise-minutes').addEventListener('input', updateExercisePreview);
+
+      document.getElementById('form-add-exercise').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const selectEl = document.getElementById('exercise-type');
+        const met = Number(selectEl.value) || 3.8;
+        const label = selectEl.options[selectEl.selectedIndex].text.split(' (')[0];
+        const minutes = parseInt(document.getElementById('exercise-minutes').value, 10) || 30;
+        const kcal = computeExerciseBurn(met, minutes);
+
+        const today = ensureTodayRecord();
+        today.exercises.push({ id: `e-${Date.now()}`, name: label, minutes, kcal, createdAt: Date.now() });
+        saveState();
+        renderAll();
+        showToast(`Logged ${label} (-${kcal} kcal)`);
+      });
+
+      document.getElementById('today-log-list').addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-delete-id]');
+        if (!btn) return;
+        const today = ensureTodayRecord();
+        if (btn.dataset.deleteKind === 'meal') {
+          today.meals = today.meals.filter((m) => m.id !== btn.dataset.deleteId);
+        } else {
+          today.exercises = today.exercises.filter((ex) => ex.id !== btn.dataset.deleteId);
+        }
+        saveState();
+        renderAll();
+      });
+
+      document.getElementById('btn-clear-today').addEventListener('click', () => {
+        const today = ensureTodayRecord();
+        today.meals = [];
+        today.exercises = [];
+        today.waterLiters = 0;
+        saveState();
+        renderAll();
+        showToast("Cleared today's log");
+      });
+
+      document.getElementById('toggle-sound').addEventListener('change', (e) => {
+        state.soundEnabled = e.target.checked;
+        saveState();
+      });
+
+      document.getElementById('btn-enable-notif').addEventListener('click', async () => {
+        try {
+          if (!('Notification' in window)) {
+            showToast('In-app reminder alerts are active.');
+            return;
+          }
+          const perm = await Notification.requestPermission();
+          showToast(perm === 'granted' ? 'Browser alerts enabled!' : 'Using in-app reminder banner.');
+        } catch (e) {
+          showToast('Using in-app reminder banner.');
+        }
+      });
+
+      document.getElementById('schedule-list').addEventListener('change', (e) => {
+        const toggleId = e.target.dataset.scheduleToggle;
+        const timeId = e.target.dataset.scheduleTime;
+        if (toggleId) {
+          const item = state.schedule.find((s) => s.id === toggleId);
+          if (item) item.enabled = e.target.checked;
+        }
+        if (timeId) {
+          const item = state.schedule.find((s) => s.id === timeId);
+          if (item) item.time = e.target.value;
+        }
+        saveState();
+        updateCountdown();
+      });
+
+      document.getElementById('btn-toggle-custom-food').addEventListener('click', () => {
+        document.getElementById('form-custom-food').classList.toggle('hidden');
+      });
+
+      document.getElementById('btn-cancel-custom-food').addEventListener('click', () => {
+        document.getElementById('form-custom-food').classList.add('hidden');
+      });
+
+      document.getElementById('form-custom-food').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const name = document.getElementById('custom-food-name').value.trim();
+        const slot = document.getElementById('custom-food-slot').value;
+        const kcal = parseInt(document.getElementById('custom-food-kcal').value, 10);
+        const protein = parseFloat(document.getElementById('custom-food-protein').value) || 0;
+        const fiber = parseFloat(document.getElementById('custom-food-fiber').value) || 0;
+        const fat = parseFloat(document.getElementById('custom-food-fat').value) || 0;
+        if (!name || !kcal) return;
+
+        state.customFoods.unshift({
+          id: `c-${Date.now()}`,
+          name,
+          slot,
+          kcal,
+          protein,
+          fiber,
+          fat,
+          isCustom: true,
+          tags: [slot, 'Custom'],
+          note: 'Custom food added by you'
+        });
+        saveState();
+        e.target.reset();
+        document.getElementById('form-custom-food').classList.add('hidden');
+        activeMealFilter = 'All';
+        renderMeals();
+        showToast(`Saved "${name}" to your food library!`);
+      });
+
+      document.getElementById('meal-filter-group').addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-filter]');
+        if (!btn) return;
+        activeMealFilter = btn.dataset.filter;
+        renderMeals();
+      });
+
+      document.getElementById('meal-ideas-grid').addEventListener('click', (e) => {
+        const delBtn = e.target.closest('[data-delete-custom]');
+        if (delBtn) {
+          state.customFoods = state.customFoods.filter((c) => c.id !== delBtn.dataset.deleteCustom);
+          saveState();
+          renderMeals();
+          showToast('Removed custom food');
+          return;
+        }
+        const btn = e.target.closest('[data-quick-meal]');
+        if (!btn) return;
+        const meal = getAllFoods().find((m) => m.id === btn.dataset.quickMeal);
+        if (!meal) return;
+        const today = ensureTodayRecord();
+        today.meals.push({
+          id: `m-${Date.now()}`,
+          name: meal.name,
+          slot: meal.slot,
+          kcal: meal.kcal,
+          protein: meal.protein || 0,
+          fiber: meal.fiber || 0,
+          fat: meal.fat || 0,
+          createdAt: Date.now()
+        });
+        saveState();
+        renderTracker();
+        showToast(`Logged ${meal.name} (+${meal.kcal} kcal)`);
+      });
+
+      document.getElementById('exercise-plan-grid').addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-quick-ex-name]');
+        if (!btn) return;
+        const name = btn.dataset.quickExName;
+        const minutes = parseInt(btn.dataset.quickExMins, 10);
+        const kcal = parseInt(btn.dataset.quickExKcal, 10);
+        const today = ensureTodayRecord();
+        today.exercises.push({ id: `e-${Date.now()}`, name, minutes, kcal, createdAt: Date.now() });
+        saveState();
+        renderAll();
+        showToast(`Logged ${name} (-${kcal} kcal)`);
+      });
+
+      document.getElementById('btn-apply-bmi-target').addEventListener('click', () => {
+        const m = computeBmiMetrics();
+        state.goals.calories = m.recommended;
+        saveState();
+        renderAll();
+        if (activeTab === 'progress') renderChart();
+        showToast(`Applied safe target: ${m.recommended.toLocaleString()} kcal/day`);
+      });
+
+      document.getElementById('form-goals').addEventListener('submit', (e) => {
+        e.preventDefault();
+        state.goals.sex = document.getElementById('goal-sex').value;
+        state.goals.heightCm = parseFloat(document.getElementById('goal-height').value) || 170;
+        state.goals.age = parseInt(document.getElementById('goal-age').value, 10) || 30;
+        state.goals.activityFactor = parseFloat(document.getElementById('goal-activity').value) || 1.375;
+        state.goals.currentWeight = parseFloat(document.getElementById('goal-current-weight').value) || 80;
+        state.goals.targetWeight = parseFloat(document.getElementById('goal-target-weight').value) || 74;
+
+        const m = computeBmiMetrics();
+        let requestedCalories = parseInt(document.getElementById('goal-calories').value, 10) || m.recommended;
+        if (requestedCalories < m.minFloor) {
+          requestedCalories = m.minFloor;
+          showToast(`Raised calorie target to safe minimum (${m.minFloor} kcal/day).`);
+        } else {
+          showToast('Profile & targets saved!');
+        }
+        state.goals.calories = requestedCalories;
+        state.goals.protein = parseInt(document.getElementById('goal-protein').value, 10) || 120;
+        state.goals.fiber = parseInt(document.getElementById('goal-fiber').value, 10) || 30;
+        state.goals.fat = parseInt(document.getElementById('goal-fat').value, 10) || 50;
+        state.goals.burn = parseInt(document.getElementById('goal-burn').value, 10) || 250;
+        state.goals.water = parseFloat(document.getElementById('goal-water').value) || 3.0;
+        saveState();
+        renderAll();
+        if (activeTab === 'progress') renderChart();
+      });
+
+      renderAll();
+      setInterval(updateCountdown, 1000);
+    })();
+  </script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('./sw.js').catch(function () {});
+      });
+    }
+  </script>
+</body>
+</html>

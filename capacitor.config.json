@@ -1,0 +1,6 @@
+{
+  "appId": "com.caloriecoach.app",
+  "appName": "Calorie Coach",
+  "webDir": "www",
+  "bundledWebRuntime": false
+}
